@@ -39,15 +39,20 @@ public class DemoLoanbrokerMicroserviceApplication {
             @Override
             public void configure() throws Exception {
 
-                restConfiguration("servlet").bindingMode(RestBindingMode.json).producerComponent("http4").bindingMode(RestBindingMode.json);
+                restConfiguration("servlet")
+                        .bindingMode(RestBindingMode.json).
+                        producerComponent("jetty")
+                        .bindingMode(RestBindingMode.json);
 
                 rest("/loans")
                         .post("/new").type(CreditRequest.class)
                         .route().id("NewLoan").setHeader(Exchange.HTTP_RESPONSE_CODE).constant(200)
+                        .removeHeaders("*")
                         .choice()
                         .when(exchange -> exchange.getIn().getBody(CreditRequest.class).getAmount() <= 100).to("direct:low-value")
                         .when(exchange -> exchange.getIn().getBody(CreditRequest.class).getAmount() >= 1000).to("direct:high-value")
-                        .otherwise().to("direct:medium-value");
+                        .otherwise().to("direct:medium-value")
+                        .endChoice().endRest();
 
                 from("direct:low-value")
                         // auto-approve loans for small amounts
