@@ -9,6 +9,7 @@ import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ClaimCheckOperation;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +34,13 @@ public class DemoLoanbrokerMicroserviceApplication {
         return new BankService();
     }
 
+    @Value("${creditService.hostHeader:default}")
+    private String creditHostHeader;
+
+    @Value("${bankService.hostHeader:default}")
+    private String bankHostHeader;
+
+
     @Bean
     public RouteBuilder buildRoute() {
         return new RouteBuilder() {
@@ -41,7 +49,7 @@ public class DemoLoanbrokerMicroserviceApplication {
 
                 restConfiguration("servlet")
                         .bindingMode(RestBindingMode.json).
-                        producerComponent("jetty")
+                        producerComponent("http4")
                         .bindingMode(RestBindingMode.json);
 
                 rest("/loans")
@@ -68,6 +76,7 @@ public class DemoLoanbrokerMicroserviceApplication {
                 from("direct:medium-value")
                         .setHeader("originalRequest").simple("${in.body}")
                         .setHeader("applicantId").simple("${in.body.applicantId}")
+                        .setHeader("Host").constant(creditHostHeader)
                         .setBody().constant(null)
                         .to("rest:get:credit/{applicantId}?bridgeEndpoint=true&host={{creditService.url}}&produces=application/json")
                         .unmarshal().json(JsonLibrary.Jackson, CreditRating.class)
@@ -99,6 +108,7 @@ public class DemoLoanbrokerMicroserviceApplication {
                             exchange.getOut().setBody(new BankRequest(originalRequest, exchange.getIn().getBody(CreditRating.class)));
                         })
                         .marshal().json(JsonLibrary.Jackson)
+                        .setHeader("Host").constant(bankHostHeader)
                         .to("rest:post:rateCalculator?bridgeEndpoint=true&host={{bankService.url}}&produces=application/json")
                         .unmarshal().json(JsonLibrary.Jackson, Map.class);
 
@@ -106,6 +116,7 @@ public class DemoLoanbrokerMicroserviceApplication {
                 from("direct:high-value")
                         .setHeader("originalRequest").simple("${in.body}")
                         .setHeader("applicantId").simple("${in.body.applicantId}")
+                        .setHeader("Host").constant(creditHostHeader)
                         .setBody().constant(null)
                         .to("rest:get:credit/{applicantId}?host={{creditService.url}}&?bridgeEndpoint=true&produces=application/json")
                         .unmarshal().json(JsonLibrary.Jackson, CreditRating.class)
@@ -114,6 +125,7 @@ public class DemoLoanbrokerMicroserviceApplication {
                             exchange.getOut().setBody(new BankRequest(originalRequest, exchange.getIn().getBody(CreditRating.class)));
                         })
                         .marshal().json(JsonLibrary.Jackson)
+                        .setHeader("Host").constant(bankHostHeader)
                         .to("rest:post:rate-calculator?bridgeEndpoint=true&host={{bankService.url}}&produces=application/json")
                         .unmarshal().json(JsonLibrary.Jackson, Map.class);
 
