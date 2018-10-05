@@ -1,0 +1,11 @@
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: bank-service
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: 172.30.1.1:5000/myproject/bank-service@sha256:16ab17f67b45a8dabea1ca6810b08eac1131aca45af2c9204b1a1051687353b9

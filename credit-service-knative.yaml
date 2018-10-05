@@ -1,0 +1,11 @@
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: credit-service
+spec:
+  runLatest:
+    configuration:
+      revisionTemplate:
+        spec:
+          container:
+            image: 172.30.1.1:5000/myproject/credit-service@[includeSHA]
